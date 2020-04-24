@@ -1,5 +1,5 @@
 use crate::{
-    read_csv::{CsvSource, Record},
+    read_csv::{CsvSource, Record, Schema},
     record_type::RecordType,
 };
 use quick_xml::{
@@ -19,6 +19,7 @@ use std::io::{self, Read, Write};
 ///
 /// Number of processed records.
 pub fn generate_xml<O: Write, I: Read>(
+    schema: Schema,
     out: O,
     mut reader: CsvSource<I>,
     category: &str,
@@ -33,9 +34,13 @@ pub fn generate_xml<O: Write, I: Read>(
     // Open root tag (Category)
     open_markup(&mut writer, category)?;
     let mut num_records: u64 = 0;
-    while let Some(record) = reader.read_record()? {
+    let mut current_record = Record{
+        schema : &schema,
+        values: csv::StringRecord::new()
+    };
+    while reader.read_record(&mut current_record)? {
         // Write one record for each entry in csv
-        write_record(&mut writer, &record, record_type.as_str())?;
+        write_record(&mut writer, &current_record, record_type.as_str())?;
         num_records += 1;
     }
     // Close root tag (Category)

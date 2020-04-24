@@ -74,7 +74,8 @@ impl FromStr for IoArg {
     }
 }
 
-fn main() -> CliResult {
+#[tokio::main]
+async fn main() -> CliResult {
     let args = Cli::from_args();
 
     // Only initialized in case `input` specifies a file path, because only then we have information
@@ -147,7 +148,7 @@ fn main() -> CliResult {
         }
     };
 
-    let reader = CsvSource::new(input, args.delimiter as u8)?;
+    let (reader, schema) = CsvSource::new(input, args.delimiter as u8)?;
 
     let mut out: Box<dyn io::Write> = match args.output {
         IoArg::File(output) => {
@@ -165,7 +166,7 @@ fn main() -> CliResult {
             Box::new(writer)
         }
     };
-    let num_records = generate_xml(&mut out, reader, &args.category, args.record_type)?;
+    let num_records = generate_xml(schema, &mut out, reader, &args.category, args.record_type)?;
     // Drop progress bar, so it's removed from stderr before we print the performance metrics.
     // Otherwise, the drop handler would erroneously remove the lower lines of the performance metrics output.
     std::mem::drop(progress_bar);
